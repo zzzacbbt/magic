@@ -17,7 +17,7 @@ services:
     TZ: Asiz/Shanghai
   entrypoint: [ mysqld ]
   command: [ "--character-set-server=utf8mb4" ]
-  -
+  
 
 
 
