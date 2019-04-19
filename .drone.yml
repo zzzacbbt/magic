@@ -4,17 +4,16 @@ name: default
 steps:
 - name: build
   image: python:3.7.0
-  command:
-  - pip install aiohttp
-  - pip install jinja2
-  - pip install aiomysql
+  commands:
+  - pip3 install aiohttp
+  - pip3 install jinja2
+  - pip3 install aiomysql
   - python3 ./www/app.py
 services:
 - name: database
   image: mysql:5.7
   environment:
     MYSQL_ROOT_PASSWORD: pass
-    TZ: Asiz/Shanghai
   command: [ "--character-set-server=utf8mb4" ]
   
 
