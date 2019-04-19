@@ -1,0 +1,23 @@
+kind: pipeline
+name: default
+
+steps:
+- name: build
+  image: python:3.7.0
+  command:
+  - pip3 install aiohttp
+  - pip3 install jinja2
+  - pip3 install aiomysql
+  - python3 ./www/app.py
+services:
+- name: database
+  image: mysql:5.7
+  environment:
+    MYSQL_ROOT_PASSWORD: pass
+    TZ: Asiz/Shanghai
+  entrypoint: [ mysqld ]
+  command: [ "--character-set-server=utf8mb4" ]
+  -
+
+
+
