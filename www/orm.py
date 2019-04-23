@@ -109,7 +109,8 @@ class ModelMetaclass(type):
                 else:
                     fields.append(k)
         if not primaryKey:
-            raise RuntimeError('primary no exist')
+            #raise RuntimeError('primary no exist')
+            pass
         for k in mappings.keys():
             attrs.pop(k)
         escaped_fields = list(map(lambda f: '%s' %f, fields))

@@ -14,11 +14,11 @@ class User(Model):
     passwd = StringField(column_type="varchar(50)")
     admin = BooleanField()
     name = StringField(column_type="varchar(50)")
-    image = StringField(column_type="varchar(50)")
+    image = StringField(column_type="varchar(500)")
     created_at = FloatField(default = time.time())
 
 
-class Bobs(Model):
+class Blog(Model):
     __table__ = 'blogs'
 
     id = StringField(primary_key=True, default=next_id, column_type='varchar(50)')
@@ -31,8 +31,8 @@ class Bobs(Model):
     created_at = FloatField(default=time.time)
 
 
-class Commit(Model):
-    __table__ = 'commits'
+class Comment(Model):
+    __table__ = 'comments'
 
     id = StringField(primary_key=True, default=next_id, column_type='varchar(50)')
     blog_id = StringField(column_type='varchar(50)')
