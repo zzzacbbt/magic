@@ -6,7 +6,7 @@ create database awesome;
 
 use awesome;
 
-CREATE USER 'www-data'@'localhost' IDENTIFIED BY 'www-data'
+CREATE USER 'www-data'@'localhost' IDENTIFIED BY 'www-data';
 
 
 grant select, insert, update, delete on awesome.* to 'www-data'@'localhost';

@@ -7,45 +7,43 @@ def log(sql, args=()):
     logging.info('SQL: %s' % sql)
 
     
-async def create_pool(loop, **kw):
+async def create_pool(loop, host='localhost', port=3306, 
+    user='', password='', db='', charset='utf8mb4', autocommit=True,
+    maxsize=10, minsize=1):
     logging.info("create database connection pool...")
     global pool
-    pool = await aiomysql.create_pool(
-        host=kw.get('host','localhost'),
-        port=kw.get('port',3306),
-        user=kw['user'],
-        password=kw['password'],
-        db=kw['db'],
-        charset=kw.get('charset','utf-8'),
-        autocommit=kw.get('autocommit',True),
-        maxsize=kw.get('maxsize',10),
-        minsize=kw.get('minsize',1),
-        loop=loop
-    )
-
+    pool = await aiomysql.create_pool(host=host, port=port, user=user, password=password, db=db, 
+    charset=charset, autocommit=autocommit, maxsize=maxsize, minsize=minsize, loop=loop)
+    
 async def select(sql, args, size=None):
     log(sql,args)
-    async with (await pool) as conn:
+    async with pool.acquire() as conn:
         #A cursor which returns results as a dictionary
-        cur = await conn.cursor(aiomysql.DictCursor)
-        await cur.execute(sql.replace('?','%s'), args or ())
-        if size:
-            rs = await cur.fetchmany(size)
-        else:
-            rs = await cur.fetchall()
-        await cur.close()
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(sql.replace('?','%s'), args or ())
+            if size:
+                rs = await cur.fetchmany(size)
+            else:
+                rs = await cur.fetchall()
+            await cur.close()
         logging.info('row returned: %s' % len(rs))
         return rs
 
-async def execute(sql,args):
+async def execute(sql, args, autocommit=True):
     log(sql)
-    async with(await pool) as conn:
+    async with pool.acquire() as conn:
+        if not autocommit:
+            await conn.begin()
         try:
-            cur = await conn.cursor()
-            await cur.execute(sql.replace('?','%s'),args)
-            affected = cur.rowcount
+            async with conn.cursor(aipmysql.DictCursor) as cur:
+                await cur.execute(sql.replace('?','%s'),args)
+                affected = cur.rowcount
+            if not autocommit:
+                await conn.commit()
             await cur.close()
         except BaseException as e:
+            if not autocommit:
+                await conn.rollback()
             raise
         return affected
 def create_args_string(num):
@@ -72,7 +70,7 @@ class StringField(Field):
 
 
 class IntergerField(Field):
-    def __init__(self, name=None, primary_key=False, default=None, column_type='bigint'):
+    def __init__(self, name=None, primary_key=False, default=0, column_type='bigint'):
         super().__init__(name, column_type, primary_key, default)
 
 
@@ -82,7 +80,7 @@ class BooleanField(Field):
 
 
 class FloatField(Field):
-    def __init__(self, name=None, primary_key=False, default=None, column_type='real'):
+    def __init__(self, name=None, primary_key=False, default=0.0, column_type='real'):
         super().__init__(name, column_type, primary_key, default)
 
 
@@ -104,27 +102,27 @@ class ModelMetaclass(type):
                 mappings[k] = v
                 if v.primary_key:
                     if primaryKey:
-                        raise RuntimeError
+                        raise RuntimeError('Duplicate primary key for field: %s' % k)
                     primaryKey = k
                 else:
                     fields.append(k)
         if not primaryKey:
-            #raise RuntimeError('primary no exist')
+            #raise RuntimeError('Primary key no found')
             pass
         for k in mappings.keys():
             attrs.pop(k)
-        escaped_fields = list(map(lambda f: '%s' %f, fields))
+        escaped_fields = list(map(lambda f: '%s' % f, fields))
         attrs['__mappings__'] = mappings
         attrs['__table__'] = tableName
         attrs['__primary_key__'] = primaryKey
         attrs['__field__'] = fields
-        attrs['__select__'] = 'select `%s`, %s from `%s`' % (primaryKey, ', '.join(escaped_fields), tableName)
-        attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ', '.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
-        attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tableName, ', '.join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)), primaryKey)
-        attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tableName, primaryKey)
+        attrs['__select__'] = "select %s, %s from %s" % (primaryKey, ', '.join(escaped_fields), tableName)
+        attrs['__insert__'] = "insert into %s (%s, %s) values (%s)" % (tableName, ', '.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
+        attrs['__update__'] = "update %s set %s where %s=?" % (tableName, ', '.join(list(map(lambda f: '%s=?' % (mappings.get(f).name or f), fields))), primaryKey)
+        attrs['__delete__'] = 'delete from %s where %s=?' % (tableName, primaryKey)
         return type.__new__(cls, name, bases, attrs)
 class Model(dict, metaclass=ModelMetaclass):
-    def _init(self,**kw):
+    def __init__(self, **kw):
         super(Model,self).__init__(**kw)
 
 
@@ -140,11 +138,11 @@ class Model(dict, metaclass=ModelMetaclass):
 
 
     def getValue(self, key):
-        return getattr(self,key,None)
+        return getattr(self, key, None)
 
     
     def getValueOrDefault(self, key):
-        value = getattr(self,key,None)
+        value = getattr(self, key, None)
         if value is None:
             field = self.__mappings__[key]
             if field.default is not None:
@@ -155,7 +153,7 @@ class Model(dict, metaclass=ModelMetaclass):
 
 
     @classmethod
-    async def findAll(cls, where=None, args=None, **kw):
+    async def findAll(cls, where=None, args=None, orderBy=None, limit=None):
         ' find objects by where clause. '
         sql = [cls.__select__]
         if where:
@@ -163,11 +161,9 @@ class Model(dict, metaclass=ModelMetaclass):
             sql.append(where)
         if args is None:
             args = []
-        orderBy = kw.get('orderBy', None)
         if orderBy:
             sql.append('order by')
-            sql.append(orderBy)
-        limit = kw.get('limit', None)
+            sql.append(orderBy)      
         if limit is not None:
             sql.append('limit')
             if isinstance(limit, int):
