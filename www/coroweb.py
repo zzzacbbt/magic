@@ -77,7 +77,7 @@ def has_request_arg(fn):
             raise ValueError('request parameter must be the last named parameter in function: %s%s' % (fn.__name__, str(sig)))
     return found
 
-class RequestHandler(object):
+class RequestHandlers(object):
 
     def __init__(self, app, fn):
         self._app = app
@@ -153,7 +153,7 @@ def add_route(app, fn):
     if not asyncio.iscoroutinefunction(fn) and not inspect.isgeneratorfunction(fn):
         fn = asyncio.coroutine(fn)
     logging.info('add route %s %s => %s(%s)' % (method, path, fn.__name__, ', '.join(inspect.signature(fn).parameters.keys())))
-    app.router.add_route(method, path, RequestHandler(app, fn))
+    app.router.add_route(method, path, RequestHandlers(app, fn))
 
 def add_routes(app, module_name):
     n = module_name.rfind('.')
