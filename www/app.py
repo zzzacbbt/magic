@@ -2,14 +2,39 @@ import logging;
 logging.basicConfig(level=logging.INFO)
 
 import asyncio,os,json,time
-
+from datetime import datetime
 from aiohttp import web
-from coroweb import add_routes
+from coroweb import add_routes, add_static
 import orm
-
+from jinja2 import Environment, FileSystemLoader
 from models import User
-routes = web.RouteTableDef()
 
+def init_jinja2(app, 
+                autoscape = True, 
+                block_start_string = '{%', 
+                block_end_string = '%}',
+                variable_start_string = '{{',
+                variable_end_string = '}}',
+                autorelod = True,
+                path = None,
+                filters = None):
+    logging.info('init jinja2...')
+    options = dict(
+        autoescape = autoescape
+        block_start_string = block_start_string
+        block_end_string = block_end_string
+        variable_start_string = variable_start_string
+        variable_end_string = variable_end_string
+        auto_reload = auto_reload
+    )
+    if path is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+    logging.info('set jinja2 template path: %s' % path)
+    env = Environment(loader=FileSystemLoader(path), **options)
+    if filters is not None:
+        for name, f in filters.items():
+            env.filters[name] = f
+    app['__templating__'] = env
 
 async def logger_factory(app, handler):
     async def logger(request):
@@ -18,6 +43,17 @@ async def logger_factory(app, handler):
         return (await handler(request))
     return logger
 
+async def data_factory(app, handler):
+    async def parse_data(request):
+        if request.method == 'POST':
+            if request.content_type.startswith('application/json'):
+                request.__data__ = await request.json()
+                logging.info('request json: %s' % str(request.__data__))
+            elif request.content_type.startswith('application/x-www-form-urlencoded'):
+                request.__data__ = await request.post()
+                logging.info('request form: %s' % str(request.__data__))
+        return (await handler(request))
+    return parse_data
 
 async def response_factory(app, handler):
     async def response(request):
@@ -57,13 +93,29 @@ async def response_factory(app, handler):
         return resp
     return response
 
+def datetime_filter(t):
+    delta = int(time.time() - t)
+    if delta < 60:
+        return u'1分钟前'
+    if delta < 3600:
+        return u'%s分钟前' % (delta // 60)
+    if delta < 86400:
+        return u'%s小时前' % (delta // 3600)
+    if delta < 604800:
+        return u'%s天前' % (delta // 86400)
+    dt = datetime.fromtimestamp(t)
+    return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
+
+
 
 async def init(loop):
     await orm.create_pool(host='127.0.0.1', port=3306, user='www-data',password='www-data', db='awesome',loop=loop)
     app = web.Application(loop=loop, middlewares=[
         logger_factory, response_factory
     ])
+    init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app,'handles')
+    add_static(app)
     srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
     logging.info('server started at http://127.0.0.1:9000...')
     return srv

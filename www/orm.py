@@ -7,9 +7,16 @@ def log(sql, args=()):
     logging.info('SQL: %s' % sql)
 
     
-async def create_pool(loop, host='localhost', port=3306, 
-    user='', password='', db='', charset='utf8mb4', autocommit=True,
-    maxsize=10, minsize=1):
+async def create_pool(loop,
+                      host='localhost',
+                      port=3306,
+                      user='',
+                      password='',
+                      db='',
+                      charset='utf8mb4',
+                      autocommit=True,
+                      maxsize=10,
+                      minsize=1):
     logging.info("create database connection pool...")
     global pool
     pool = await aiomysql.create_pool(host=host, port=port, user=user, password=password, db=db, 
