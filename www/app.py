@@ -10,21 +10,21 @@ from jinja2 import Environment, FileSystemLoader
 from models import User
 
 def init_jinja2(app, 
-                autoscape = True, 
+                autoescape = True, 
                 block_start_string = '{%', 
                 block_end_string = '%}',
                 variable_start_string = '{{',
                 variable_end_string = '}}',
-                autorelod = True,
+                auto_reload = True,
                 path = None,
                 filters = None):
     logging.info('init jinja2...')
     options = dict(
-        autoescape = autoescape
-        block_start_string = block_start_string
-        block_end_string = block_end_string
-        variable_start_string = variable_start_string
-        variable_end_string = variable_end_string
+        autoescape = autoescape,
+        block_start_string = block_start_string,
+        block_end_string = block_end_string,
+        variable_start_string = variable_start_string,
+        variable_end_string = variable_end_string,
         auto_reload = auto_reload
     )
     if path is None:
