@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     {% block meta %}
     <!-- block meta -->{% endblock %}
-    <title>{% block title%} ? {% endblock %} - Awesome Python Webapp</title>
+    <title>{% block title %} ? {% endblock %} - Awesome Python Webapp</title>
     <link rel="stylesheet" href="/static/css/uikit-rtl.css">
     <link rel="stylesheet" href="/static/css/uikit-rtl.min.css">
     <link rel="stylesheet" href="/static/css/uikit.css">
@@ -19,16 +19,13 @@
 </head>
 
 <body>
-    <nav class="uk-navbar uk-navbar-attached uk-margin-bottom">
-        <div class="uk-container uk-container-center">
-            <a href="/" class="uk-navbar-brand">Awesome</a>
+    <nav class="uk-navbar-container uk-margin-bottom" uk-navbar>
+        <div class="uk-navbar-left uk-margin-small-right uk-container uk-container-center">
+            <a href="/" class="">Awesome</a>
             <ul class="uk-navbar-nav">
-                <li data-url="blogs"><a href="/"><i class="uk-icon-home"></i> 日志</a></li>
-                <li><a target="_blank"
-                        href="http://www.liaoxuefeng.com/wiki/0014316089557264a6b348958f449949df42a6d3a2e542c000"><i
-                            class="uk-icon-book"></i> 教程</a></li>
-                <li><a target="_blank" href="https://github.com/michaelliao/awesome-python3-webapp"><i
-                            class="uk-icon-code"></i> 源码</a></li>
+                <li data-url="blogs"><a href="/" uk-icon="icon: home"> 日志</a></li>
+                <li><a target="_blank" href=# uk-icon="icon: home"> 教程</a></li>
+                <li><a target="_blank" href=# uk-icon="icon: code"> 源码</a></li>
             </ul>
             <div class="uk-navbar-flip">
                 <ul class="uk-navbar-nav">
