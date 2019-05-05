@@ -1,38 +1,86 @@
 {% extends '__base__.html' %}
 
-{% block title %}日志{% endblock %}
+{% block title %}Test{% endblock %}
 
-{% block beforehead %}
 
-<script>
-</script>
-
-{% endblock %}
 
 {% block content %}
 
-    <div class="uk-width-medium-3-4">
-    {% for blog in blogs %}
-        <article class="uk-article">
-            <h2><a href="/blog/{{ blog.id }}">{{ blog.name }}</a></h2>
-            <p class="uk-article-meta">发表于{{ blog.created_at|datetime }}</p>
-            <p>{{ blog.summary }}</p>
-            <p><a href="/blog/{{ blog.id }}">继续阅读 <i class="uk-icon-angle-double-right"></i></a></p>
-        </article>
-        <hr class="uk-article-divider">
-    {% endfor %}
-    </div>
-
-    <div class="uk-width-medium-1-4">
-        <div class="uk-panel uk-panel-header">
-            <h3 class="uk-panel-title">友情链接</h3>
-            <ul class="uk-list uk-list-line">
-                <li><i class="uk-icon-thumbs-o-up"></i> <a target="_blank" href="http://www.liaoxuefeng.com/category/0013738748415562fee26e070fa4664ad926c8e30146c67000">编程</a></li>
-                <li><i class="uk-icon-thumbs-o-up"></i> <a target="_blank" href="http://www.liaoxuefeng.com/category/0013738748248885ddf38d8cd1b4803aa74bcda32f853fd000">读书</a></li>
-                <li><i class="uk-icon-thumbs-o-up"></i> <a target="_blank" href="http://www.liaoxuefeng.com/wiki/001374738125095c955c1e6d8bb493182103fac9270762a000">Python教程</a></li>
-                <li><i class="uk-icon-thumbs-o-up"></i> <a target="_blank" href="http://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b000">Git教程</a></li>
-            </ul>
+<div class="uk-width-medium-3-4">
+    <div class="js-upload uk-placeholder uk-text-center">
+        <span uk-icon="icon: cloud-upload"></span>
+        <span class="uk-text-middle">Attach binaries by dropping them here or</span>
+        <div uk-form-custom>
+            <input type="file" multiple>
+            <span class="uk-link">selecting one</span>
         </div>
     </div>
+
+    <progress id="js-progressbar" class="uk-progress" value="0" max="100" hidden></progress>
+
+    <script>
+
+        var bar = document.getElementById('js-progressbar');
+
+        UIkit.upload('.js-upload', {
+
+            url: '',
+            multiple: true,
+
+            beforeSend: function () {
+                console.log('beforeSend', arguments);
+            },
+            beforeAll: function () {
+                console.log('beforeAll', arguments);
+            },
+            load: function () {
+                console.log('load', arguments);
+            },
+            error: function () {
+                console.log('error', arguments);
+            },
+            complete: function () {
+                console.log('complete', arguments);
+            },
+
+            loadStart: function (e) {
+                console.log('loadStart', arguments);
+
+                bar.removeAttribute('hidden');
+                bar.max = e.total;
+                bar.value = e.loaded;
+            },
+
+            progress: function (e) {
+                console.log('progress', arguments);
+
+                bar.max = e.total;
+                bar.value = e.loaded;
+            },
+
+            loadEnd: function (e) {
+                console.log('loadEnd', arguments);
+
+                bar.max = e.total;
+                bar.value = e.loaded;
+            },
+
+            completeAll: function () {
+                console.log('completeAll', arguments);
+
+                setTimeout(function () {
+                    bar.setAttribute('hidden', 'hidden');
+                }, 1000);
+
+                alert('Upload Completed');
+            }
+
+        });
+
+    </script>
+
+</div>
+
+
 
 {% endblock %}
